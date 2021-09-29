@@ -12,3 +12,6 @@ my_dict = '/home/moon/methanol/perturb_5000/run_0000/chemkin/species_dictionary.
 
 species_list, reaction_list = load_chemkin_file(my_chem, dictionary_path=my_dict)
 print(species_list)
+
+
+output_dir = "/home/moon/autokmc/task1/"
