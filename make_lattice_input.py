@@ -105,5 +105,5 @@ def draw_lattice():
 
 
 lattice0 = Lattice100()
-fname = "/home/moon/autokmc/task1/lattice_input.txt"
+fname = "/home/moon/autokmc/task1/lattice_input.dat"
 lattice0.write_input_file(fname)
