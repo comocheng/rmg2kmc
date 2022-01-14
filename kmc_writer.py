@@ -10,12 +10,10 @@ class KMCWriter(abc.ABC):
 
 
 class MonteCoffeeWriter(KMCWriter):
-    def write(self):
-        return super().write()
-    pass
+    def write(self, output_dir, species_list, reaction_list):
+        pass
 
 
 class ZacrosWriter(KMCWriter):
-    def write(self):
-        return super().write()
-    pass
+    def write(self, output_dir, species_list, reaction_list):
+        pass

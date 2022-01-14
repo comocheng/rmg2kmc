@@ -6,8 +6,12 @@
 - SPPARKS
 
 ## TODO
-- convert RMG reactions to Monte Coffee events
-- identify favored binding sites
+- Cantera mechanism reader
+- Chemkin mechanism reader
+- Monte Coffee writer
+- Zacros writer
+- identify favored binding sites - use RMG species dictionary to identify which atom is bound to the surface?
+- specify multiple surface facets (to start, assume fcc(111) facet)
 
 ## Usage
 1. Create a directory with your mechanism file
