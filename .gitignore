@@ -1,2 +1,7 @@
 .vscode
 __pycache__
+examples/co_oxidation/run.py
+examples/co_oxidation/user_events.py
+examples/co_oxidation/user_sites.py
+examples/co_oxidation/user_system.py
+examples/co_oxidation/user_kmc.py
