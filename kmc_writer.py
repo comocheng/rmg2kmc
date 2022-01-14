@@ -44,7 +44,7 @@ class MonteCoffeeWriter(KMCWriter):
 
     def generate_user_sites(self, species_list):
         lines = [f'# User sites autogenerate by rmg2kmc {datetime.datetime.now()}\n']
-        lines.append('import base.sites\n\n')
+        lines.append('import base.sites\n\n\n')
 
         # for now, this only handles 4 site types for 111 facets
         lines.append('# Define constant site types\n')
@@ -82,7 +82,48 @@ class MonteCoffeeWriter(KMCWriter):
         return lines
 
     def generate_user_events(self, reaction_list):
+        # TODO remove dependence of MonteCoffee simulations on Cantera
         lines = [f'# User events autogenerate by rmg2kmc {datetime.datetime.now()}\n']
+        lines.append('import cantera as ct\n')
+        lines.append('import base.events\n')
+        lines.append('import user_sites\n\n\n')
+
+        # need to convert reaction into a class name
+        # TODO add Diffusion reactions
+        for i, reaction in enumerate(reaction_list):
+            # define forward reaction
+            lines.append(f'class Reaction{i}Fwd(base.events.EventBase):\n')
+            lines.append(f'    # {reaction.equation}\n')
+            lines.append('    def __init__(self, params):\n')
+            lines.append('        base.events.EventBase.__init__(self, params, name={reaction.equation})\n\n')
+
+            lines.append('    def possible(self, system, site, other_site):\n')
+            # TODO actually fill this out
+            lines.append('        return True\n\n')
+
+            # Define the reaction rate
+            lines.append('    def get_rate(self, system, site, other_site):\n')
+            # TODO add temperature dependence
+            if not isinstance(reaction.rate, ct.Arrhenius):
+                raise NotImplementedError('Kinetics only implemented for type Arrhenius')
+            lines.append('        T = 1000.0\n')
+            A = reaction.rate.pre_exponential_factor
+            Ea = reaction.rate.activation_energy
+            b = reaction.rate.temperature_exponent
+            lines.append(f'        kinetics = ct.Arrhenius(A={A}, b={b}, E={Ea})\n')
+            lines.append('        return kinetics(T)\n\n')
+
+            # TODO fill out actual event actions
+            lines.append('    def do_event(self, system, site, other_site):\n')
+            lines.append('        pass\n\n')
+
+            lines.append('    def get_involve_other(self):\n')
+            lines.append('        return False\n\n\n')
+
+            if reaction.reversible:
+                # TODO define reverse reaction
+                pass
+
         return lines
 
 
