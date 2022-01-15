@@ -14,6 +14,16 @@ def rename_species(name):
     return name
 
 
+def detect_reaction_type(reaction):
+    """
+    function to detect the forward reaction type as surface reaction adsorption or desorption
+    convention is that the first reactant is the site, and the second is other_site
+    """
+    reaction_types = ['adsorption', 'desorption', 'surface_reaction']
+    # adsorption/desorption has a gas phase species
+    return 'adsorption'
+
+
 class KMCWriter(abc.ABC):
     @abc.abstractmethod
     def write(self):
@@ -91,6 +101,12 @@ class MonteCoffeeWriter(KMCWriter):
         # need to convert reaction into a class name
         # TODO add Diffusion reactions
         for i, reaction in enumerate(reaction_list):
+            if len(reaction.reactants) > 2:
+                raise NotImplementedError('Trimolecular reactions not yet supported')
+
+            # figure out if it's a surface reaction or adsorption
+            reaction_type = detect_reaction_type(reaction)
+
             # define forward reaction
             lines.append(f'class Reaction{i}Fwd(base.events.EventBase):\n')
             lines.append(f'    # {reaction.equation}\n')
