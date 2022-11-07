@@ -1,0 +1,648 @@
+units(length='cm', time='s', quantity='mol', act_energy='kcal/mol')
+
+ideal_gas(name='gas',
+          elements="H D T C Ci O Oi N Ne Ar He Si S F Cl Br I X",
+          species="""Ar      Ne      N2      O2(2)   CO2(3)  CO(4)   O2(73)""",
+          reactions='gas-*',
+          transport='Mix',
+          initial_state=state(temperature=300.0, pressure=OneAtm))
+
+ideal_interface(name='surface1',
+                elements="H D T C Ci O Oi N Ne Ar He Si S F Cl Br I X",
+                species="""X(1)        OX(8)       CO2X(13)    OCX(14)
+                          CX(15)      CO2X2(24)   COX2(31)    CO2X3(43)
+                          O2X2(46)    O2X(48)     CO3X4(64)   C2O2X2(80)
+                          C3OX2(107)  SX(136)""",
+                site_density=2.72e-09,
+                phases="gas",
+          reactions='surface1-*',
+                initial_state=state(temperature=300.0, pressure=OneAtm))
+
+#-------------------------------------------------------------------------------
+# Element data
+#-------------------------------------------------------------------------------
+
+element(symbol='Ci', atomic_mass=13.003)
+element(symbol='D', atomic_mass=2.014)
+element(symbol='Oi', atomic_mass=17.999)
+element(symbol='T', atomic_mass=3.016)
+element(symbol='X', atomic_mass=195.083)
+#-------------------------------------------------------------------------------
+# Species data
+#-------------------------------------------------------------------------------
+
+species(name='Ar',
+        atoms='Ar:1',
+        thermo=(NASA([200.00, 1000.00],
+                     [ 2.50000000E+00,  0.00000000E+00,  0.00000000E+00,
+                       0.00000000E+00,  0.00000000E+00, -7.45375000E+02,
+                       4.37967000E+00]),
+                NASA([1000.00, 6000.00],
+                     [ 2.50000000E+00,  0.00000000E+00,  0.00000000E+00,
+                       0.00000000E+00,  0.00000000E+00, -7.45375000E+02,
+                       4.37967000E+00])),
+        transport=gas_transport(geom='atom',
+                                diam=3.33,
+                                well_depth=136.501))
+
+species(name='Ne',
+        atoms='Ne:1',
+        thermo=(NASA([200.00, 1000.00],
+                     [ 2.50000000E+00,  0.00000000E+00,  0.00000000E+00,
+                       0.00000000E+00,  0.00000000E+00, -7.45375000E+02,
+                       3.35532000E+00]),
+                NASA([1000.00, 6000.00],
+                     [ 2.50000000E+00,  0.00000000E+00,  0.00000000E+00,
+                       0.00000000E+00,  0.00000000E+00, -7.45375000E+02,
+                       3.35532000E+00])),
+        transport=gas_transport(geom='atom',
+                                diam=3.758,
+                                well_depth=148.6))
+
+species(name='N2',
+        atoms='N:2',
+        thermo=(NASA([200.00, 1000.00],
+                     [ 3.53101000E+00, -1.23661000E-04, -5.02999000E-07,
+                       2.43531000E-09, -1.40881000E-12, -1.04698000E+03,
+                       2.96747000E+00]),
+                NASA([1000.00, 6000.00],
+                     [ 2.95258000E+00,  1.39690000E-03, -4.92632000E-07,
+                       7.86010000E-11, -4.60755000E-15, -9.23949000E+02,
+                       5.87189000E+00])),
+        transport=gas_transport(geom='linear',
+                                diam=3.621,
+                                well_depth=97.53,
+                                polar=1.76,
+                                rot_relax=4.0))
+
+species(name='O2(2)',
+        atoms='O:2',
+        thermo=(NASA([100.00, 1074.55],
+                     [ 3.53732306E+00, -1.21572374E-03,  5.31622715E-06,
+                      -4.89449486E-09,  1.45847491E-12, -1.03858852E+03,
+                       4.68367956E+00]),
+                NASA([1074.55, 5000.00],
+                     [ 3.15381732E+00,  1.67804947E-03, -7.69977495E-07,
+                       1.51276220E-10, -1.08783036E-14, -1.04081576E+03,
+                       6.16757806E+00])),
+        transport=gas_transport(geom='linear',
+                                diam=3.467,
+                                well_depth=106.7))
+
+species(name='CO2(3)',
+        atoms='C:1 O:2',
+        thermo=(NASA([100.00, 978.23],
+                     [ 3.28083527E+00,  2.50196842E-03,  8.08151784E-06,
+                      -1.20504991E-08,  4.66519201E-12, -4.84008299E+04,
+                       6.00084740E+00]),
+                NASA([978.23, 5000.00],
+                     [ 4.67430878E+00,  2.60956959E-03, -9.85648902E-07,
+                       1.95704154E-10, -1.49828179E-14, -4.89512313E+04,
+                      -2.11096873E+00])),
+        transport=gas_transport(geom='linear',
+                                diam=3.941,
+                                well_depth=195.201))
+
+species(name='CO(4)',
+        atoms='C:1 O:1',
+        thermo=(NASA([100.00, 1571.63],
+                     [ 3.56838045E+00, -8.52130174E-04,  2.48918996E-06,
+                      -1.56332160E-09,  3.13598612E-13, -1.42842550E+04,
+                       3.57912002E+00]),
+                NASA([1571.63, 5000.00],
+                     [ 2.91304980E+00,  1.64660253E-03, -6.88627283E-07,
+                       1.21040018E-10, -7.84038409E-15, -1.41808757E+04,
+                       6.71055590E+00])),
+        transport=gas_transport(geom='linear',
+                                diam=3.69,
+                                well_depth=91.7,
+                                polar=1.76,
+                                rot_relax=4.0))
+
+species(name='O2(73)',
+        atoms='O:2',
+        thermo=(NASA([100.00, 1074.55],
+                     [ 3.53732306E+00, -1.21572374E-03,  5.31622715E-06,
+                      -4.89449486E-09,  1.45847491E-12,  1.03044825E+04,
+                       4.68367956E+00]),
+                NASA([1074.55, 5000.00],
+                     [ 3.15381732E+00,  1.67804947E-03, -7.69977495E-07,
+                       1.51276220E-10, -1.08783036E-14,  1.03022552E+04,
+                       6.16757806E+00])),
+        transport=gas_transport(geom='linear',
+                                diam=4.347,
+                                well_depth=223.367))
+
+species(name='X(1)',
+        atoms='X:1',
+        thermo=(NASA([100.00, 1554.81],
+                     [ 7.10134229E-03, -4.25614410E-05,  8.98519485E-08,
+                      -7.80181004E-11,  2.32461701E-14, -8.76099090E-01,
+                      -3.11209254E-02]),
+                NASA([1554.81, 5000.00],
+                     [ 1.60301482E-01, -2.52237676E-04,  1.14182424E-07,
+                      -1.21474113E-11,  3.85808919E-16, -7.08109168E+01,
+                      -9.09536736E-01])))
+
+species(name='OX(8)',
+        atoms='O:1 X:1',
+        thermo=(NASA([100.00, 888.26],
+                     [-7.59010605E-01,  1.89868186E-02, -3.82472548E-05,
+                       3.43556678E-08, -1.13973560E-11, -1.46217852E+04,
+                       1.76016526E+00]),
+                NASA([888.26, 5000.00],
+                     [ 1.89893001E+00,  2.03296518E-03, -1.19977223E-06,
+                       2.32682221E-10, -1.53509598E-14, -1.48973287E+04,
+                      -9.64100628E+00])))
+
+species(name='CO2X(13)',
+        atoms='C:1 O:2 X:1',
+        thermo=(NASA([100.00, 882.27],
+                     [-1.54697208E+00,  4.08811468E-02, -8.54328594E-05,
+                       8.20027053E-08, -2.88137839E-11, -4.74892330E+04,
+                       1.37825842E+01]),
+                NASA([882.27, 5000.00],
+                     [ 1.80889807E+00,  9.72997526E-03, -5.37606393E-06,
+                       1.03587222E-09, -6.95097781E-14, -4.74611489E+04,
+                       1.52784434E+00])))
+
+species(name='OCX(14)',
+        atoms='C:1 O:1 X:1',
+        thermo=(NASA([100.00, 891.31],
+                     [-1.38220492E+00,  3.75313467E-02, -8.29789341E-05,
+                       8.09745725E-08, -2.85491668E-11, -3.29210525E+04,
+                       4.35470172E+00]),
+                NASA([891.31, 5000.00],
+                     [ 1.38106885E+00,  8.05690339E-03, -4.64291970E-06,
+                       8.91129769E-10, -5.90013911E-14, -3.27354457E+04,
+                      -4.85408694E+00])))
+
+species(name='CX(15)',
+        atoms='C:1 X:1',
+        thermo=(NASA([100.00, 1401.15],
+                     [-6.04854751E-01,  1.10908100E-02, -1.34368951E-05,
+                       7.18231711E-09, -1.40682933E-12,  9.43788929E+03,
+                       1.48479417E+00]),
+                NASA([1401.15, 5000.00],
+                     [ 3.08072047E+00, -6.87405372E-04,  5.17558053E-07,
+                      -9.72952765E-11,  6.24189569E-15,  8.52843435E+03,
+                      -1.70989087E+01])))
+
+species(name='CO2X2(24)',
+        atoms='C:1 O:2 X:2',
+        thermo=(NASA([100.00, 924.21],
+                     [ 3.12765009E+00, -5.99444178E-04,  3.64363002E-05,
+                      -5.17518715E-08,  2.10864263E-11, -7.50642447E+04,
+                      -1.62512067E+01]),
+                NASA([924.21, 5000.00],
+                     [ 8.66340598E+00, -1.93828097E-03,  1.89712813E-06,
+                      -3.55963405E-10,  2.05496848E-14, -7.70535555E+04,
+                      -4.77481635E+01])),
+        size=2.0)
+
+species(name='COX2(31)',
+        atoms='C:1 O:1 X:2',
+        thermo=(NASA([100.00, 907.89],
+                     [ 3.29367568E+00, -4.89814370E-04,  2.05985081E-05,
+                      -3.00759791E-08,  1.25798719E-11, -3.34981919E+04,
+                      -1.73752598E+01]),
+                NASA([907.89, 5000.00],
+                     [ 6.63765609E+00, -2.14205554E-03,  1.71649720E-06,
+                      -3.41188188E-10,  2.20462757E-14, -3.46444829E+04,
+                      -3.61538600E+01])),
+        size=2.0)
+
+species(name='CO2X3(43)',
+        atoms='C:1 O:2 X:3',
+        thermo=(NASA([100.00, 924.21],
+                     [ 3.12765009E+00, -5.99444178E-04,  3.64363002E-05,
+                      -5.17518715E-08,  2.10864263E-11, -7.29573886E+04,
+                      -1.62512067E+01]),
+                NASA([924.21, 5000.00],
+                     [ 8.66340598E+00, -1.93828097E-03,  1.89712813E-06,
+                      -3.55963405E-10,  2.05496848E-14, -7.49466994E+04,
+                      -4.77481635E+01])),
+        size=3.0)
+
+species(name='O2X2(46)',
+        atoms='O:2 X:2',
+        thermo=(NASA([100.00, 880.24],
+                     [-1.45393165E+00,  3.63697869E-02, -7.28467862E-05,
+                       6.57415546E-08, -2.19835928E-11, -1.16802212E+04,
+                       4.47360237E+00]),
+                NASA([880.24, 5000.00],
+                     [ 3.49760969E+00,  4.52461608E-03, -2.65653261E-06,
+                       5.21588019E-10, -3.50194191E-14, -1.21899230E+04,
+                      -1.67267979E+01])),
+        size=2.0)
+
+species(name='O2X(48)',
+        atoms='O:2 X:1',
+        thermo=(NASA([100.00, 955.70],
+                     [ 3.34675528E+00,  1.60897195E-03,  6.08347082E-06,
+                      -9.32419698E-09,  3.72193171E-12,  6.24270206E+03,
+                      -5.37777610E+00]),
+                NASA([955.70, 5000.00],
+                     [ 4.45922506E+00,  1.37216807E-03, -4.81117964E-07,
+                       9.35537306E-11, -7.33106142E-15,  5.82824057E+03,
+                      -1.17502862E+01])))
+
+species(name='CO3X4(64)',
+        atoms='C:1 O:3 X:4',
+        thermo=(NASA([100.00, 932.59],
+                     [ 3.22047970E+00,  7.42087448E-03,  2.71878995E-05,
+                      -4.71645948E-08,  2.02505868E-11, -5.41564420E+04,
+                      -1.20249633E+01]),
+                NASA([932.59, 5000.00],
+                     [ 1.11227523E+01, -1.58656406E-03,  1.64792663E-06,
+                      -2.93311157E-10,  1.52599317E-14, -5.67125799E+04,
+                      -5.53995887E+01])),
+        size=4.0)
+
+species(name='C2O2X2(80)',
+        atoms='C:2 O:2 X:2',
+        thermo=(NASA([100.00, 985.11],
+                     [ 2.90570917E+00,  2.54033627E-02, -3.26346261E-05,
+                       2.03913041E-08, -5.03920212E-12, -5.79049467E+04,
+                      -5.15156399E+00]),
+                NASA([985.11, 5000.00],
+                     [ 7.59978291E+00,  6.34358650E-03, -3.61331992E-06,
+                       7.51660810E-10, -5.51623022E-14, -5.88297982E+04,
+                      -2.77274157E+01])),
+        size=2.0)
+
+species(name='C3OX2(107)',
+        atoms='C:3 O:1 X:2',
+        thermo=(NASA([100.00, 1276.57],
+                     [ 2.62116887E+00,  2.66695370E-02, -3.62056050E-05,
+                       2.16300603E-08, -4.72722212E-12, -3.09584474E+04,
+                      -4.33848538E+00]),
+                NASA([1276.57, 5000.00],
+                     [ 1.04066493E+01, -1.50657383E-03,  1.34490345E-06,
+                      -3.00285034E-10,  2.19478508E-14, -3.26380994E+04,
+                      -4.25932491E+01])),
+        size=2.0)
+
+species(name='SX(136)',
+        atoms='C:2 O:5 X:6',
+        thermo=(NASA([100.00, 962.25],
+                     [ 1.66010320E+00,  4.30101328E-02, -3.55501706E-05,
+                       3.54631860E-09,  4.59918627E-12, -1.30270348E+05,
+                       8.33137246E-01]),
+                NASA([962.25, 5000.00],
+                     [ 1.66766885E+01,  2.93492790E-04,  3.19327686E-07,
+                      -2.17147167E-11, -3.37876664E-15, -1.34072603E+05,
+                      -7.57758937E+01])),
+        size=6.0)
+
+#-------------------------------------------------------------------------------
+# Reaction data
+#-------------------------------------------------------------------------------
+#  Reaction index: Chemkin #1; RMG #287
+#  Template reaction: Singlet_Val6_to_triplet
+#  Flux pairs: O2(73), O2(2);
+#  Matched reaction 0 O2(S) => O2(T) in Singlet_Val6_to_triplet/training
+#  This reaction matched rate rule [O2]
+#  family: Singlet_Val6_to_triplet
+
+# Reaction 1
+reaction('O2(73) => O2(2)', [4.500000e+10, 0.0, 0.397],
+         id='gas-1')
+#  Reaction index: Chemkin #1; RMG #7
+#  Library reaction: Surface/CPOX_Pt/Deutschmann2006_adjusted
+#  Flux pairs: OCX(14), X(1); OCX(14), CO(4);
+
+# surface1 Reaction 1
+surface_reaction('OCX(14) <=> X(1) + CO(4)', [1.000000e+11, 0.0, 40.511],
+                 id='surface1-1')
+#  Reaction index: Chemkin #2; RMG #57
+#  Template reaction: Surface_DoubleBond_to_Bidentate
+#  Flux pairs: X(1), COX2(31); OCX(14), COX2(31);
+#  Exact match found for rate rule [Combined;VacantSite]
+#  Euclidian distance = 0
+#  family: Surface_DoubleBond_to_Bidentate
+
+# surface1 Reaction 2
+surface_reaction('X(1) + OCX(14) <=> COX2(31)', [4.270000e+19, 0.549, 1.0],
+                 id='surface1-2')
+#  Reaction index: Chemkin #3; RMG #6
+#  Library reaction: Surface/CPOX_Pt/Deutschmann2006_adjusted
+#  Flux pairs: OX(8), O2(2); OX(8), X(1); OX(8), X(1);
+
+# surface1 Reaction 3
+surface_reaction('OX(8) + OX(8) <=> X(1) + X(1) + O2(2)', [3.700000e+21, 0.0, 66.611],
+                 id='surface1-3')
+#  Reaction index: Chemkin #4; RMG #50
+#  Template reaction: Surface_Adsorption_Dissociative_Double
+#  Flux pairs: CO2(3), OCX(14); X(1), OX(8); X(1), OX(8);
+#  Estimated using template [Adsorbate;VacantSite1;VacantSite2] for rate rule [CO2;VacantSite1;VacantSite2]
+#  Euclidian distance = 2.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Adsorption_Dissociative_Double
+
+# surface1 Reaction 4
+surface_reaction('X(1) + X(1) + CO2(3) <=> OX(8) + OCX(14)', stick(2.000000e-02, 0.0, 10.0),
+                 id='surface1-4')
+#  Reaction index: Chemkin #5; RMG #49
+#  Template reaction: Surface_Adsorption_Bidentate
+#  Flux pairs: X(1), CO2X2(24); X(1), CO2X2(24); CO2(3), CO2X2(24);
+#  Exact match found for rate rule [Adsorbate;VacantSite1;VacantSite2]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Adsorption_Bidentate
+
+# surface1 Reaction 5
+surface_reaction('X(1) + X(1) + CO2(3) <=> CO2X2(24)', stick(2.000000e-01, 0.0, 0.0),
+                 id='surface1-5')
+#  Reaction index: Chemkin #6; RMG #74
+#  Template reaction: Surface_Bidentate_Dissociation
+#  Flux pairs: CO2X2(24), OX(8); CO2X2(24), OCX(14);
+#  Exact match found for rate rule [Combined]
+#  Euclidian distance = 0
+#  family: Surface_Bidentate_Dissociation
+#  Ea raised from 0.0 to 228.4 kJ/mol to match endothermicity of reaction.
+
+# surface1 Reaction 6
+surface_reaction('CO2X2(24) <=> OX(8) + OCX(14)', [8.960000e+10, 0.422, 54.598],
+                 id='surface1-6')
+#  Reaction index: Chemkin #7; RMG #76
+#  Template reaction: Surface_Bidentate_Dissociation
+#  Flux pairs: CO2X3(43), OX(8); CO2X3(43), COX2(31);
+#  Exact match found for rate rule [Combined]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Bidentate_Dissociation
+#  Ea raised from 0.0 to 206.4 kJ/mol to match endothermicity of reaction.
+
+# surface1 Reaction 7
+surface_reaction('CO2X3(43) <=> OX(8) + COX2(31)', [1.792000e+11, 0.422, 49.326],
+                 id='surface1-7')
+#  Reaction index: Chemkin #8; RMG #81
+#  Template reaction: Surface_DoubleBond_to_Bidentate
+#  Flux pairs: X(1), CO2X3(43); CO2X2(24), CO2X3(43);
+#  Exact match found for rate rule [Combined;VacantSite]
+#  Euclidian distance = 0
+#  family: Surface_DoubleBond_to_Bidentate
+#  Ea raised from 17.5 to 17.5 kJ/mol to match endothermicity of reaction.
+
+# surface1 Reaction 8
+surface_reaction('X(1) + CO2X2(24) <=> CO2X3(43)', [4.270000e+19, 0.549, 4.188],
+                 id='surface1-8')
+#  Reaction index: Chemkin #9; RMG #94
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: OCX(14), CO2X2(24); CO2X3(43), COX2(31);
+#  Estimated using template [C=*;Donating] for rate rule [C=*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 9
+surface_reaction('OCX(14) + CO2X3(43) <=> COX2(31) + CO2X2(24)', [2.780000e+21, 0.101, 4.541],
+                 id='surface1-9')
+#  Reaction index: Chemkin #10; RMG #78
+#  Template reaction: Surface_Bidentate_Dissociation
+#  Flux pairs: O2X2(46), OX(8); O2X2(46), OX(8);
+#  Exact match found for rate rule [Combined]
+#  Euclidian distance = 0
+#  family: Surface_Bidentate_Dissociation
+
+# surface1 Reaction 10
+surface_reaction('O2X2(46) <=> OX(8) + OX(8)', [8.960000e+10, 0.422, 0.0],
+                 id='surface1-10')
+#  Reaction index: Chemkin #11; RMG #99
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: OCX(14), CO2X2(24); O2X2(46), OX(8);
+#  Estimated using template [C=*;Donating] for rate rule [C=*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 11
+surface_reaction('O2X2(46) + OCX(14) <=> OX(8) + CO2X2(24)', [2.780000e+21, 0.101, 4.541],
+                 id='surface1-11')
+#  Reaction index: Chemkin #12; RMG #119
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: COX2(31), CO2X3(43); O2X2(46), OX(8);
+#  Estimated using template [C#*;Donating] for rate rule [C#*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 12
+surface_reaction('O2X2(46) + COX2(31) <=> OX(8) + CO2X3(43)', [8.800000e+22, 0.101, 10.134],
+                 id='surface1-12')
+#  Reaction index: Chemkin #13; RMG #5
+#  Library reaction: Surface/CPOX_Pt/Deutschmann2006_adjusted
+#  Flux pairs: X(1), CO2X(13); CO2(3), CO2X(13);
+
+# surface1 Reaction 13
+surface_reaction('X(1) + CO2(3) <=> CO2X(13)', stick(5.000000e-03, 0.0, 0.0),
+                 id='surface1-13')
+#  Reaction index: Chemkin #14; RMG #9
+#  Library reaction: Surface/CPOX_Pt/Deutschmann2006_adjusted
+#  Flux pairs: OCX(14), CO2X(13); OX(8), X(1);
+
+# surface1 Reaction 14
+surface_reaction('OX(8) + OCX(14) <=> X(1) + CO2X(13)', [3.700000e+21, 0.0, 28.107],
+                 id='surface1-14')
+#  Reaction index: Chemkin #15; RMG #80
+#  Template reaction: Surface_vdW_to_Bidentate
+#  Flux pairs: CO2X(13), CO2X2(24); X(1), CO2X2(24);
+#  Exact match found for rate rule [Combined;VacantSite]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 4.0
+#  family: Surface_vdW_to_Bidentate
+
+# surface1 Reaction 15
+surface_reaction('X(1) + CO2X(13) <=> CO2X2(24)', [4.000000e+19, 0.0, 0.0],
+                 id='surface1-15')
+#  Reaction index: Chemkin #16; RMG #79
+#  Template reaction: Surface_Dissociation_Double_vdW
+#  Flux pairs: O2X(48), OX(8); O2X(48), OX(8);
+#  Estimated using an average for rate rule [AdsorbateVdW;VacantSite]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Dissociation_Double_vdW
+
+# surface1 Reaction 16
+surface_reaction('X(1) + O2X(48) <=> OX(8) + OX(8)', [3.282000e+20, 0.0, 57.651],
+                 id='surface1-16')
+#  Reaction index: Chemkin #17; RMG #133
+#  Template reaction: Surface_vdW_to_Bidentate
+#  Flux pairs: O2X(48), O2X2(46); X(1), O2X2(46);
+#  Exact match found for rate rule [Combined;VacantSite]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_vdW_to_Bidentate
+
+# surface1 Reaction 17
+surface_reaction('X(1) + O2X(48) <=> O2X2(46)', [2.000000e+19, 0.0, 0.0],
+                 id='surface1-17')
+#  Reaction index: Chemkin #18; RMG #8
+#  Library reaction: Surface/CPOX_Pt/Deutschmann2006_adjusted
+#  Flux pairs: OCX(14), CX(15); X(1), OX(8);
+
+# surface1 Reaction 18
+surface_reaction('X(1) + OCX(14) <=> OX(8) + CX(15)', [3.700000e+19, 0.0, 56.525],
+                 id='surface1-18')
+#  Reaction index: Chemkin #19; RMG #61
+#  Template reaction: Surface_Bidentate_Dissociation
+#  Flux pairs: COX2(31), OX(8); COX2(31), CX(15);
+#  Exact match found for rate rule [Combined]
+#  Euclidian distance = 0
+#  family: Surface_Bidentate_Dissociation
+#  Ea raised from 0.0 to 235.1 kJ/mol to match endothermicity of reaction.
+
+# surface1 Reaction 19
+surface_reaction('COX2(31) <=> OX(8) + CX(15)', [8.960000e+10, 0.422, 56.193],
+                 id='surface1-19')
+#  Reaction index: Chemkin #20; RMG #65
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: CX(15), COX2(31); CO2X2(24), OCX(14);
+#  Estimated using template [C$*;Donating] for rate rule [C$*;*R-O]
+#  Euclidian distance = 1.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 20
+surface_reaction('CX(15) + CO2X2(24) <=> OCX(14) + COX2(31)', [2.430000e+21, -0.312, 28.418],
+                 id='surface1-20')
+#  Reaction index: Chemkin #21; RMG #71
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: CX(15), COX2(31); CO2X3(43), COX2(31);
+#  Estimated using template [C$*;Donating] for rate rule [C$*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 21
+surface_reaction('CX(15) + CO2X3(43) <=> COX2(31) + COX2(31)', [4.860000e+21, -0.312, 28.418],
+                 id='surface1-21')
+#  Reaction index: Chemkin #22; RMG #75
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: CX(15), COX2(31); O2X2(46), OX(8);
+#  Estimated using template [C$*;Donating] for rate rule [C$*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 22
+surface_reaction('O2X2(46) + CX(15) <=> OX(8) + COX2(31)', [4.860000e+21, -0.312, 28.418],
+                 id='surface1-22')
+#  Reaction index: Chemkin #23; RMG #147
+#  Template reaction: Surface_Adsorption_Abstraction_vdW
+#  Flux pairs: CO2X(13), C2O2X2(80); COX2(31), OX(8);
+#  Estimated using template [O=C;Adsorbate1] for rate rule [O=C=O;*O-R]
+#  Euclidian distance = 1.4142135623730951
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Adsorption_Abstraction_vdW
+
+# surface1 Reaction 23
+surface_reaction('COX2(31) + CO2X(13) <=> OX(8) + C2O2X2(80)', [3.628000e+20, 0.0, 17.308],
+                 id='surface1-23')
+#  Reaction index: Chemkin #24; RMG #187
+#  Template reaction: Surface_Dissociation
+#  Flux pairs: C2O2X2(80), CO2X2(24); C2O2X2(80), CX(15);
+#  Estimated using an average for rate rule [C;VacantSite]
+#  Euclidian distance = 0
+#  family: Surface_Dissociation
+
+# surface1 Reaction 24
+surface_reaction('X(1) + C2O2X2(80) <=> CX(15) + CO2X2(24)', [7.359755e+22, -0.106, 6.489],
+                 id='surface1-24')
+#  Reaction index: Chemkin #25; RMG #244
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: OX(8), C2O2X2(80); C3OX2(107), CX(15);
+#  Estimated using template [O;Donating] for rate rule [O;*C-C]
+#  Euclidian distance = 2.0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 25
+surface_reaction('OX(8) + C3OX2(107) <=> CX(15) + C2O2X2(80)', [6.596000e+21, 0.0, 0.0],
+                 id='surface1-25')
+#  Reaction index: Chemkin #26; RMG #132
+#  Template reaction: Surface_Adsorption_Bidentate
+#  Flux pairs: O2(73), O2X2(46); X(1), O2X2(46); X(1), O2X2(46);
+#  Exact match found for rate rule [Adsorbate;VacantSite1;VacantSite2]
+#  Euclidian distance = 0
+#  family: Surface_Adsorption_Bidentate
+
+# surface1 Reaction 26
+surface_reaction('X(1) + X(1) + O2(73) <=> O2X2(46)', stick(1.000000e-01, 0.0, 0.0),
+                 id='surface1-26')
+#  Reaction index: Chemkin #27; RMG #169
+#  Template reaction: Surface_Adsorption_vdW
+#  Flux pairs: O2(73), O2X(48); X(1), O2X(48);
+#  Estimated using an average for rate rule [O;VacantSite]
+#  Euclidian distance = 0
+#  family: Surface_Adsorption_vdW
+
+# surface1 Reaction 27
+surface_reaction('X(1) + O2(73) <=> O2X(48)', stick(1.000000e-01, 0.0, 0.0),
+                 id='surface1-27')
+#  Reaction index: Chemkin #28; RMG #115
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: CX(15), COX2(31); CO3X4(64), CO2X3(43);
+#  Estimated using template [C$*;Donating] for rate rule [C$*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 3.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 28
+surface_reaction('CX(15) + CO3X4(64) <=> COX2(31) + CO2X3(43)', [7.290000e+21, -0.312, 28.418],
+                 id='surface1-28')
+#  Reaction index: Chemkin #29; RMG #120
+#  Template reaction: Surface_Bidentate_Dissociation
+#  Flux pairs: CO3X4(64), CO2X3(43); CO3X4(64), OX(8);
+#  Exact match found for rate rule [Combined]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 3.0
+#  family: Surface_Bidentate_Dissociation
+
+# surface1 Reaction 29
+surface_reaction('CO3X4(64) <=> OX(8) + CO2X3(43)', [2.688000e+11, 0.422, 0.0],
+                 id='surface1-29')
+#  Reaction index: Chemkin #30; RMG #123
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: OCX(14), CO2X2(24); CO3X4(64), CO2X3(43);
+#  Estimated using template [C=*;Donating] for rate rule [C=*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 3.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 30
+surface_reaction('OCX(14) + CO3X4(64) <=> CO2X2(24) + CO2X3(43)', [4.170000e+21, 0.101, 4.541],
+                 id='surface1-30')
+#  Reaction index: Chemkin #31; RMG #129
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: COX2(31), CO2X3(43); CO3X4(64), CO2X3(43);
+#  Estimated using template [C#*;Donating] for rate rule [C#*;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 3.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 31
+surface_reaction('COX2(31) + CO3X4(64) <=> CO2X3(43) + CO2X3(43)', [1.320000e+23, 0.101, 10.134],
+                 id='surface1-31')
+#  Reaction index: Chemkin #32; RMG #143
+#  Template reaction: Surface_Abstraction
+#  Flux pairs: OX(8), O2X2(46); CO3X4(64), CO2X3(43);
+#  Estimated using template [O;Donating] for rate rule [O;*R-O]
+#  Euclidian distance = 1.0
+#  Multiplied by reaction path degeneracy 3.0
+#  family: Surface_Abstraction
+
+# surface1 Reaction 32
+surface_reaction('OX(8) + CO3X4(64) <=> O2X2(46) + CO2X3(43)', [9.894000e+21, 0.0, 0.0],
+                 id='surface1-32')
+#  Reaction index: Chemkin #33; RMG #319
+#  Template reaction: Surface_Dissociation
+#  Flux pairs: SX(136), CO3X4(64); SX(136), CO2X3(43);
+#  Estimated using an average for rate rule [C-O;VacantSite]
+#  Euclidian distance = 0
+#  Multiplied by reaction path degeneracy 2.0
+#  family: Surface_Dissociation
+
+# surface1 Reaction 33
+surface_reaction('X(1) + SX(136) <=> CO2X3(43) + CO3X4(64)', [2.920000e+24, -0.213, 12.978],
+                 id='surface1-33')
