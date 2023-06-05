@@ -18,7 +18,7 @@
 
 
 import abc
-
+import rmgpy.chemkin
 
 class MechanismReader(abc.ABC):
     """
@@ -47,5 +47,14 @@ class CanteraMechanismReader(MechanismReader):
 
 
 class ChemkinMechanismReader(MechanismReader):
-    def read(self):
-        return super().read()
+    def read(self, gas_mech_file, surface_mech_file, dictionary_path=None, transport_path=None):
+        """
+        Read in the Chemkin mechanism
+        """
+        
+
+        gas_species, gas_reactions = rmgpy.chemkin.load_chemkin_file(gas_mech_file, dictionary_path=dictionary_path, transport_path=transport_path)
+        surface_species, surface_reactions = rmgpy.chemkin.load_chemkin_file(surface_mech_file, dictionary_path=dictionary_path, transport_path=transport_path)
+
+        return gas_species + surface_species, gas_reactions + surface_reactions
+
