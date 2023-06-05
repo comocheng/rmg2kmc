@@ -42,11 +42,11 @@ else:
 # Write
 if output_format == 'montecoffee':
     writer = kmc_writer.MonteCoffeeWriter()
-    output_dir = os.path.dirname(os.path.join(mechanism_file, 'montecoffee'))
+    output_dir = os.path.join(os.path.dirname(mechanism_file), 'montecoffee')
 elif output_format == 'zacros':
     writer = kmc_writer.ZacrosWriter()
-    output_dir = os.path.dirname(os.path.join(mechanism_file, 'zacros'))
+    output_dir = os.path.join(os.path.dirname(mechanism_file), 'zacros')
 else:
     raise ValueError(f'Output format {output_format} not recognized')
 
-writer.write(output_dir, species_list, reaction_list)
+writer.write(output_dir, species_list, reaction_list, T=1000)
