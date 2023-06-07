@@ -37,12 +37,24 @@ elif mechanism_file.endswith('.inp'):
     # get the site density from the file
     with open(surface_mech_file, 'r') as f:
         for line in f:
-            if 'SDEN' in line and 'mol/cm2' in line:
+            if 'SDEN' in line and ('mol/cm2' in line or 'mol/cm^2' in line):
                 site_density = float(line.split('/')[1]) * 100.0 * 100.0  # convert to mol/m2
                 break
         else:
             site_density = 2.72E-5  # default value
             raise ValueError('Could not find site density in surface mechanism file')
+        
+    # specify the initial concentrations
+    starting_gas_conc = ''
+    for sp in species_list:
+        if sp.contains_surface_site():
+            continue
+        elif sp.label == 'Ar':
+            starting_gas_conc += ' 0.9'
+        elif sp.label == 'CO':
+            starting_gas_conc += ' 0.1'
+        else:
+            starting_gas_conc += ' 0.0'
 
 else:
     raise ValueError("Mechanism file extension not recognized")
@@ -59,4 +71,6 @@ elif output_format == 'zacros':
 else:
     raise ValueError(f'Output format {output_format} not recognized')
 
-writer.write(output_dir, species_list, reaction_list, T=1000, site_density=site_density)
+
+
+writer.write(output_dir, species_list, reaction_list, starting_gas_conc, T=1000, site_density=site_density)

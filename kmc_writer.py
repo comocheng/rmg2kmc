@@ -223,6 +223,13 @@ class ZacrosWriter(KMCWriter):
 
 
     def write_mechanism_file(self, output_dir, species_list, reaction_list, T, site_density):
+        """
+        Write the Zacros mechanism file
+        translate the rate using either a simple pre-exponential or Zacros's 7-param equation
+        """
+        translation_method = 'pre_exponential'  # TODO add option for 7-param
+        # translation_method = '7_param'
+
         # WRITE THE MECHANISM FILE
         mechanism_path = os.path.join(output_dir, 'mechanism_input.dat')
         lines = []
@@ -247,7 +254,7 @@ class ZacrosWriter(KMCWriter):
                 gas_reacs_prods_string += f' {get_species_name(sp, species_list)} {reaction.get_stoichiometric_coefficient(sp)}'
                 
 
-            if reaction.is_reversible():
+            if reaction.reversible:
                 lines.append(f'reversible_step {step_name}\n\n')
             else:
                 lines.append(f'step {step_name}\n\n')
@@ -281,23 +288,29 @@ class ZacrosWriter(KMCWriter):
             # if it's a sticking reaction...
             N_av = 6.02214179e+23
             J_to_eV = 6.241509e18
+            R = 8.314  # J/mol/K
             activation_energy = reaction.kinetics.Ea.value_si * J_to_eV / N_av  # convert J/mol to eV/electron
 
+            if translation_method == 'pre_exponential':
+                if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
+                    # divide by RT
+                    # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
+                    # need to pass through the site density
+                    A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
+                    # now the reaction rate is in units # m^3/mol/s and we need to convert to 1/bar/s
+                    A = A / R / T * 1e5
 
-            if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
-                # divide by RT
-                # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
-                # need to pass through the site density
-                A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
+                else:
+                    raise NotImplementedError(f'Cannot handle kinetics type {type(reaction.kinetics)}')
 
 
             lines.append('  variant top\n')
             lines.append('    site_types\ttop\n')
-            lines.append(f'    pre_expon\t{A}\n')
+            lines.append(f'    pre_expon\t{A}\n')  # TODO - figure out RMG's units for a basic sticking coefficient
             lines.append(f'    activ_eng\t{activation_energy}  # eV\n')
             lines.append('  end_variant\n\n')
 
-            if reaction.is_reversible():
+            if reaction.reversible:
                 lines.append('end reversible_step\n\n')
             else:
                 lines.append('end_step\n\n\n')
@@ -307,7 +320,7 @@ class ZacrosWriter(KMCWriter):
         with open(mechanism_path, 'w') as f:
             f.writelines(lines)
 
-    def write_simulation_file(self, output_dir, species_list, T=1000, P=1.01325):
+    def write_simulation_file(self, output_dir, species_list, starting_gas_conc, T=1000, P=1.01325):
         # WRITE THE GENERAL SIMULATION INPUT FILE
         simulation_path = os.path.join(output_dir, 'simulation_input.dat')
         lines = []
@@ -338,7 +351,8 @@ class ZacrosWriter(KMCWriter):
         lines.append(f'gas_molec_weights\t\t{" ".join([str(np.round(sp.molecular_weight.value, 3)) for sp in gas_species])}\n')
         
         # TODO add something that makes sense
-        lines.append(f'gas_molar_fracs\t\t{" ".join([str(np.round(1.0 / num_gas_species, 2)) for sp in gas_species])}\n\n')
+        lines.append(f'gas_molar_fracs\t\t{starting_gas_conc}\n\n')
+        # lines.append(f'gas_molar_fracs\t\t{" ".join([str(np.round(1.0 / num_gas_species, 2)) for sp in gas_species])}\n\n')
 
         lines.append(f'n_surf_species\t\t{num_surf_species}\n')
         lines.append(f'surf_specs_names\t\t{" ".join([str(sp.label) for sp in surf_species])}\n')
@@ -369,13 +383,13 @@ class ZacrosWriter(KMCWriter):
         with open(simulation_path, 'w') as f:
             f.writelines(lines)
 
-    def write(self, output_dir, species_list, reaction_list, T=1000, site_density=2.72e-5):
+    def write(self, output_dir, species_list, reaction_list, starting_gas_conc, T=1000, site_density=2.72e-5):
         # make the mechanism file
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
         # WRITE THE SIMULATION FILE
-        self.write_simulation_file(output_dir, species_list, T)
+        self.write_simulation_file(output_dir, species_list, starting_gas_conc, T)
 
         # WRITE THE MECHANISM FILE
         self.write_mechanism_file(output_dir, species_list, reaction_list, T, site_density)
