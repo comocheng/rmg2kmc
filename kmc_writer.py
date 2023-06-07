@@ -6,6 +6,25 @@ import shutil
 import datetime
 import abc
 import cantera as ct
+import rmgpy.kinetics
+
+
+PT111_SDEN = 1.0e15  # surface site density of Pt(111) surface in mol/m^2
+
+
+def get_reaction_type(reaction):
+    """
+    function to detect the forward reaction type
+    """
+    if len(reaction.reactants) == 2 and len(reaction.products) == 1 and \
+        any([sp.is_surface_site() for sp in reaction.reactants]) and \
+        any([not sp.contains_surface_site() for sp in reaction.reactants]):
+        return 'adsorption'
+    elif len(reaction.reactants) == 1 and len(reaction.products) == 2 and \
+        any([sp.is_surface_site() for sp in reaction.products]) and \
+        any([not sp.contains_surface_site() for sp in reaction.products]):
+        return 'desorption'
+    raise NotImplementedError
 
 
 def rename_species(name):
@@ -13,16 +32,6 @@ def rename_species(name):
     name = name.replace('(', '_')
     name = name.replace(')', '')
     return name
-
-
-def detect_reaction_type(reaction):
-    """
-    function to detect the forward reaction type as surface reaction adsorption or desorption
-    convention is that the first reactant is the site, and the second is other_site
-    """
-    reaction_types = ['adsorption', 'desorption', 'surface_reaction']
-    # adsorption/desorption has a gas phase species
-    return 'adsorption'
 
 
 class KMCWriter(abc.ABC):
@@ -106,7 +115,7 @@ class MonteCoffeeWriter(KMCWriter):
                 raise NotImplementedError('Trimolecular reactions not yet supported')
 
             # figure out if it's a surface reaction or adsorption
-            reaction_type = detect_reaction_type(reaction)
+            reaction_type = get_reaction_type(reaction)
 
             # define forward reaction
             lines.append(f'class Reaction{i}Fwd(base.events.EventBase):\n')
@@ -213,11 +222,92 @@ class ZacrosWriter(KMCWriter):
             f.writelines(lines)
 
 
-    def write(self, output_dir, species_list, reaction_list, T):
-        # make the mechanism file
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+    def write_mechanism_file(self, output_dir, species_list, reaction_list, T, site_density):
+        # WRITE THE MECHANISM FILE
+        mechanism_path = os.path.join(output_dir, 'mechanism_input.dat')
+        lines = []
+        lines.append(f'# Mechanism file autogenerate by rmg2kmc {datetime.datetime.now()}\n')
+        lines.append(f'# Temperature: {T}K\n')
+        lines.append('\n')
+        lines.append('\n')
+        lines.append('mechanism\n')
+        lines.append('\n')
 
+        # write each reaction as an irreversible step
+        for reaction in reaction_list:
+            # TODO add reversibility
+            step_name = ''.join(str(reaction).split())
+            # Figure out the type of reaction this is:
+            reaction_type = get_reaction_type(reaction)
+
+            gas_reacs_prods_string = ''
+            for sp in reaction.reactants + reaction.products:
+                if sp.contains_surface_site():
+                    continue
+                gas_reacs_prods_string += f' {get_species_name(sp, species_list)} {reaction.get_stoichiometric_coefficient(sp)}'
+                
+
+            if reaction.is_reversible():
+                lines.append(f'reversible_step {step_name}\n\n')
+            else:
+                lines.append(f'step {step_name}\n\n')
+
+            gas_reacs_prods_string = ''
+            for sp in reaction.reactants + reaction.products:
+                if sp.contains_surface_site():
+                    continue
+                gas_reacs_prods_string += f' {get_species_name(sp, species_list)} {reaction.get_stoichiometric_coefficient(sp)}'
+            lines.append(f'  gas_reacs_prods {gas_reacs_prods_string}\n')
+            # TODO read the sites from the adjacency list - this is very far down the road
+
+            # TODO add more site types
+            lines.append('  sites 1\n')
+            dentate = 1
+            if reaction_type == 'adsorption':
+                lines.append('  initial\n')
+                lines.append(f'    1  *  {dentate}\n')
+                lines.append('  final\n')
+                lines.append(f'    1  {reaction.products[0].label}  {dentate}\n\n')
+
+            elif reaction_type == 'desorption':
+                lines.append('  initial\n')
+                lines.append(f'    1  {reaction.reactants[0].label}  {dentate}\n\n')
+                lines.append('  final\n')
+                lines.append(f'    1  *  {dentate}\n')
+            else:
+                raise NotImplementedError(f'Cannot handle reaction type {reaction_type}')
+
+            # TODO add more site types
+            # if it's a sticking reaction...
+            N_av = 6.02214179e+23
+            J_to_eV = 6.241509e18
+            activation_energy = reaction.kinetics.Ea.value_si * J_to_eV / N_av  # convert J/mol to eV/electron
+
+
+            if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
+                # divide by RT
+                # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
+                # need to pass through the site density
+                A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
+
+
+            lines.append('  variant top\n')
+            lines.append('    site_types\ttop\n')
+            lines.append(f'    pre_expon\t{A}\n')
+            lines.append(f'    activ_eng\t{activation_energy}  # eV\n')
+            lines.append('  end_variant\n\n')
+
+            if reaction.is_reversible():
+                lines.append('end reversible_step\n\n')
+            else:
+                lines.append('end_step\n\n\n')
+        
+        lines.append('end_mechanism\n')
+
+        with open(mechanism_path, 'w') as f:
+            f.writelines(lines)
+
+    def write_simulation_file(self, output_dir, species_list, T=1000, P=1.01325):
         # WRITE THE GENERAL SIMULATION INPUT FILE
         simulation_path = os.path.join(output_dir, 'simulation_input.dat')
         lines = []
@@ -225,7 +315,7 @@ class ZacrosWriter(KMCWriter):
         random_seed = 8949321
         lines.append(f'random_seed\t\t{random_seed}\n\n')
         lines.append(f'temperature\t\t{float(T)}  # K\n')
-        lines.append(f'pressure\t\t1.01325  # bar\n\n')
+        lines.append(f'pressure\t\t{P}  # bar\n\n')
 
         # get num gas species
         num_gas_species = 0
@@ -262,7 +352,7 @@ class ZacrosWriter(KMCWriter):
 
         lines.append(f'# event_report\t\ton\n\n')
 
-        lines.append(f'max_steps\t\tinfinity  # seconds\n')
+        lines.append(f'max_steps\t\tinfinity  # steps\n')
         lines.append(f'max_time\t\t5e-6  # seconds\n\n')
 
         lines.append(f'wall_time\t\t3000  # seconds\n\n')
@@ -276,67 +366,19 @@ class ZacrosWriter(KMCWriter):
 
         lines.append(f'finish\n\n')
 
-
-
         with open(simulation_path, 'w') as f:
             f.writelines(lines)
 
+    def write(self, output_dir, species_list, reaction_list, T=1000, site_density=2.72e-5):
+        # make the mechanism file
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        # WRITE THE SIMULATION FILE
+        self.write_simulation_file(output_dir, species_list, T)
 
         # WRITE THE MECHANISM FILE
-        mechanism_path = os.path.join(output_dir, 'mechanism_input.dat')
-        lines = []
-        lines.append(f'# Mechanism file autogenerate by rmg2kmc {datetime.datetime.now()}\n')
-        lines.append(f'# Temperature: {T}K\n')
-        lines.append('\n')
-        lines.append('\n')
-        lines.append('mechanism\n')
-        lines.append('\n')
-
-        # write each reaction as an irreversible step
-        for reaction in reaction_list:
-
-            step_name = ''.join(str(reaction).split())
-            lines.append(f'step {step_name}\n\n')
-
-            gas_reacs_prods_string = ''
-            for sp in reaction.reactants + reaction.products:
-                if sp.contains_surface_site():
-                    continue
-
-                gas_reacs_prods_string += f' {get_species_name(sp, species_list)} {reaction.get_stoichiometric_coefficient(sp)}'
-
-            lines.append(f'  gas_reacs_prods {gas_reacs_prods_string}\n')
-            # TODO read the sites from the adjacency list
-
-            # TODO add more site types
-            lines.append('  sites 1\n')
-            dentate = 1
-            if any([sp.is_surface_site() for sp in reaction.reactants]):
-                lines.append('  initial\n')
-                lines.append(f'    1  *  {dentate}\n')
-                lines.append('  final\n')
-                # This needs to be the new surface species
-                lines.append(f'    1  {reaction.products[0].label}  {dentate}\n')
-            else:
-                lines.append('  initial\n')
-                lines.append(f'    1  {reaction.reactants[0].label}  {dentate}\n')
-                lines.append('  final\n')
-                lines.append(f'    1  *  {dentate}\n')
-            lines.append('\n')
-
-            # TODO add more site types
-            lines.append('  variant top\n')
-            lines.append('    site_types\ttop\n')
-            lines.append(f'    pre_expon\t{reaction.kinetics.A.value_si}\n')
-            lines.append(f'    activ_eng\t0.00  # eV\n')
-            lines.append('  end_variant\n\n')
-            lines.append('end_step\n\n\n')
-        
-        lines.append('end_mechanism\n')
-
-        with open(mechanism_path, 'w') as f:
-            f.writelines(lines)
-
+        self.write_mechanism_file(output_dir, species_list, reaction_list, T, site_density)
 
         # WRITE THE LATTICE FILE
         self.write_lattice_file(output_dir)

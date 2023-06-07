@@ -34,6 +34,16 @@ elif mechanism_file.endswith('.inp'):
     reader = mech_reader.ChemkinMechanismReader()
     species_list, reaction_list = reader.read(gas_mech_file, surface_mech_file, species_dict_file)
 
+    # get the site density from the file
+    with open(surface_mech_file, 'r') as f:
+        for line in f:
+            if 'SDEN' in line and 'mol/cm2' in line:
+                site_density = float(line.split('/')[1]) * 100.0 * 100.0  # convert to mol/m2
+                break
+        else:
+            site_density = 2.72E-5  # default value
+            raise ValueError('Could not find site density in surface mechanism file')
+
 else:
     raise ValueError("Mechanism file extension not recognized")
 
@@ -49,4 +59,4 @@ elif output_format == 'zacros':
 else:
     raise ValueError(f'Output format {output_format} not recognized')
 
-writer.write(output_dir, species_list, reaction_list, T=1000)
+writer.write(output_dir, species_list, reaction_list, T=1000, site_density=site_density)
