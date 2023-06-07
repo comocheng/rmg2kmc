@@ -8,3 +8,4 @@ examples/co_oxidation/user_kmc.py
 
 .ipynb_checkpoints
 
+*.png
