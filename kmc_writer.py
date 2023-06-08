@@ -320,7 +320,8 @@ class ZacrosWriter(KMCWriter):
         with open(mechanism_path, 'w') as f:
             f.writelines(lines)
 
-    def write_simulation_file(self, output_dir, species_list, starting_gas_conc, T=1000, P=1.01325):
+
+    def write_simulation_file(self, output_dir, species_list, T, P, starting_gas_conc):
         # WRITE THE GENERAL SIMULATION INPUT FILE
         simulation_path = os.path.join(output_dir, 'simulation_input.dat')
         lines = []
@@ -383,13 +384,13 @@ class ZacrosWriter(KMCWriter):
         with open(simulation_path, 'w') as f:
             f.writelines(lines)
 
-    def write(self, output_dir, species_list, reaction_list, starting_gas_conc, T=1000, site_density=2.72e-5):
+    def write(self, output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=2.72e-5):
         # make the mechanism file
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
         # WRITE THE SIMULATION FILE
-        self.write_simulation_file(output_dir, species_list, starting_gas_conc, T)
+        self.write_simulation_file(output_dir, species_list, T, P, starting_gas_conc)
 
         # WRITE THE MECHANISM FILE
         self.write_mechanism_file(output_dir, species_list, reaction_list, T, site_density)

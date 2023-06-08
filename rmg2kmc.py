@@ -1,6 +1,7 @@
 # main script to convert mechanism file to KMC input
 import os
 import sys
+import yaml
 import mech_reader
 import kmc_writer
 
@@ -44,15 +45,21 @@ elif mechanism_file.endswith('.inp'):
             site_density = 2.72E-5  # default value
             raise ValueError('Could not find site density in surface mechanism file')
         
-    # specify the initial concentrations
+    # Get the initial settings from the file
+    simulation_file = os.path.join(os.path.dirname(gas_mech_file), 'reactor_settings.yaml')
+    with open(simulation_file, 'r') as f:
+        simulation_settings = yaml.safe_load(f)
+
+    T = simulation_settings['T_K']
+    P = simulation_settings['P_Pa'] / 100000.0  # convert to bar
+    starting_gas_conc = ''
+
     starting_gas_conc = ''
     for sp in species_list:
         if sp.contains_surface_site():
             continue
-        elif sp.label == 'Ar':
-            starting_gas_conc += ' 0.9'
-        elif sp.label == 'CO':
-            starting_gas_conc += ' 0.1'
+        elif sp.label in simulation_settings['starting_gas_mol_frac_rmg'].keys():
+            starting_gas_conc += ' ' + str(simulation_settings['starting_gas_mol_frac_rmg'][sp.label])
         else:
             starting_gas_conc += ' 0.0'
 
@@ -73,4 +80,4 @@ else:
 
 
 
-writer.write(output_dir, species_list, reaction_list, starting_gas_conc, T=1000, site_density=site_density)
+writer.write(output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=site_density)

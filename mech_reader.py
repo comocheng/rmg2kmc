@@ -51,7 +51,7 @@ class ChemkinMechanismReader(MechanismReader):
         """
         Read in the Chemkin mechanism
         """
-        gas_species, gas_reactions = rmgpy.chemkin.load_chemkin_file(gas_mech_file, dictionary_path=dictionary_path, transport_path=transport_path)
-        surface_species, surface_reactions = rmgpy.chemkin.load_chemkin_file(surface_mech_file, dictionary_path=dictionary_path, transport_path=transport_path)
+        gas_species, gas_reactions = rmgpy.chemkin.load_chemkin_file(gas_mech_file, dictionary_path=dictionary_path, transport_path=transport_path, use_chemkin_names=True)
+        surface_species, surface_reactions = rmgpy.chemkin.load_chemkin_file(surface_mech_file, dictionary_path=dictionary_path, transport_path=transport_path, use_chemkin_names=True)
 
         return gas_species + surface_species, gas_reactions + surface_reactions

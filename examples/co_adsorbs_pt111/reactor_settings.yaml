@@ -1,0 +1,10 @@
+# Simulation file generated 2023-06-08 12:26:41.231559
+
+P_Pa: 101325
+T_K: 1000
+starting_gas_mol_frac_ct:
+  Ar: 0.5
+  CO(2): 0.5
+starting_gas_mol_frac_rmg:
+  Ar: 0.5
+  CO: 0.5
