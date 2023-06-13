@@ -375,9 +375,6 @@ class ZacrosWriter(KMCWriter):
                 # Assuming only a pre-exponential factor, no activation energy
                 if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
                     # divide by RT
-                    # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
-                    # need to pass through the site density
-                    # A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
                     # now the reaction rate is in units # m^3/mol/s and we need to convert to 1/bar/s
                     A = A / R / T * 1e5
 
@@ -385,47 +382,6 @@ class ZacrosWriter(KMCWriter):
 
                     Ea = J_to_eV(Ea)
                     if reaction.reversible:
-
-                        # raise NotImplementedError('Reversible sticking not implemented yet')
-                        ################## Attempt 1 ##################
-                        # simple_fwd_reaction = copy.deepcopy(reaction)
-                        # simple_fwd_reaction.kinetics = simple_fwd_kinetics
-                        # temp_reactants = copy.deepcopy(reaction.reactants)
-                        # simple_fwd_reaction.reactants = simple_fwd_reaction.products
-                        # simple_fwd_reaction.products = temp_reactants
-
-                        # rev_kinetics = simple_fwd_reaction.generate_reverse_rate_coefficient(surface_site_density=site_density)
-                        # rev_reaction = copy.deepcopy(reaction)
-                        # rev_reaction.reactants = reaction.products
-                        # rev_reaction.products = reaction.reactants
-                        # rev_reaction.kinetics = rev_kinetics
-                        # # simplify the reverse kinetics
-                        # simple_rev_kinetics = other_kinetics2simple_arrhenius(rev_reaction, T, SDEN=site_density)
-
-                        # PE_ratio = simple_fwd_kinetics.A.value_si / simple_rev_kinetics.A.value_si
-
-                        # ################# Attempt 2 ##################
-                        # # create the reverse kinetics for the reaction by reversing the original and converting it to simpler kinetics:
-                        # rmg_rev_kinetics = reaction.generate_reverse_rate_coefficient(surface_site_density=site_density)
-                        # # create a reaction object with the reverse kinetics to pass to the translator
-                        # rev_reaction = copy.deepcopy(reaction)
-                        # rev_reaction.reactants = reaction.products
-                        # rev_reaction.products = reaction.reactants
-                        # rev_reaction.kinetics = rmg_rev_kinetics
-                        # simple_rev_kinetics = other_kinetics2simple_arrhenius(rev_reaction, T, SDEN=site_density)
-                        # PE_ratio = simple_fwd_kinetics.A.value_si / simple_rev_kinetics.A.value_si
-
-
-                        ################## Attempt 3 ##################
-                        # Ea_manual = simple_fwd_kinetics.Ea.value_si - reaction.get_enthalpy_of_reaction(T)
-
-                        # kfwd = simple_fwd_kinetics.get_rate_coefficient(T)
-                        # K = reaction.get_equilibrium_constant(T)
-                        # krev = kfwd / K
-                        # A_manual = krev / np.exp(-Ea_manual / R / T)
-                        # PE_ratio = simple_fwd_kinetics.A.value_si / A_manual
-
-                        ################## Attempt 4 ##################
                         PE_ratio = np.exp(reaction.get_entropy_of_reaction(T) / R)
 
                 else:
