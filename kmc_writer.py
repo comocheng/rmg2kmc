@@ -1,6 +1,7 @@
 # Class definitions for KMC writers
 
 import os
+import yaml
 import numpy as np
 import shutil
 import datetime
@@ -159,7 +160,15 @@ def get_species_name(species, species_list):
         if sp.is_isomorphic(species):
             return sp.label
 
+
+def J_to_eV(joules_per_mol):
+    """Converts a value in J/mol to eV"""
+    N_A = 6.02214076e23
+    e = 1.602176634e-19
+    return joules_per_mol / N_A / e
+
 class ZacrosWriter(KMCWriter):
+
     def write_lattice_file(self, output_dir):
         
         lattice_path = os.path.join(output_dir, 'lattice_input.dat')
@@ -198,23 +207,36 @@ class ZacrosWriter(KMCWriter):
         with open(lattice_path, 'w') as f:
             f.writelines(lines)
 
-    def write_energetics_file(self, output_dir, species_list):
+    def write_energetics_file(self, output_dir, species_list, T):
         energetics_path = os.path.join(output_dir, 'energetics_input.dat')
         lines = []
         lines.append(f'# Energetics input autogenerate by rmg2kmc {datetime.datetime.now()}\n')
         lines.append('energetics\n\n')
 
+
+        # # Get the energy of an empty site
+        # for species in species_list:
+        #     if species.is_surface_site():
+        #         h_empty = J_to_eV(species.get_enthalpy(T))  # TODO get the enthalpy of the surface site
+        #         break
+        # else:
+        #     raise ValueError('No empty surface site found in species list')
+        #     # TODO - perhaps limp on with h_empty = 0?
+        
+
+        # Get the energy of the gas version
         for species in species_list:
             if not species.contains_surface_site():
                 continue
             if species.is_surface_site():
                 continue
+
             lines.append(f'cluster {species.label}_top\n')  # TODO other sites?
             lines.append('  sites 1\n')
             lines.append('  lattice_state\n')
             lines.append(f'    1 {species.label}   1\n')
             lines.append('  site_types top\n')
-            lines.append('  cluster_eng 0.0\n\n')
+            lines.append(f'  cluster_eng {np.round(J_to_eV(species.get_enthalpy(T)), 3)}  # eV\n\n')
             lines.append(f'end_cluster {species.label}_top\n')  # TODO other sites?
 
         lines.append('end_energetics\n\n')
@@ -285,13 +307,15 @@ class ZacrosWriter(KMCWriter):
                 raise NotImplementedError(f'Cannot handle reaction type {reaction_type}')
 
             # TODO add more site types
-            # if it's a sticking reaction...
-            N_av = 6.02214179e+23
-            J_to_eV = 6.241509e18
             R = 8.314  # J/mol/K
-            activation_energy = reaction.kinetics.Ea.value_si * J_to_eV / N_av  # convert J/mol to eV/electron
+            activation_energy = J_to_eV(reaction.kinetics.Ea.value_si)
 
             if translation_method == 'pre_exponential':
+                assert activation_energy == 0, 'Cannot handle activation energy yet'
+
+                # TODO assert monodentate
+
+                # Assuming only a pre-exponential factor, no activation energy
                 if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
                     # divide by RT
                     # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
@@ -300,18 +324,27 @@ class ZacrosWriter(KMCWriter):
                     # now the reaction rate is in units # m^3/mol/s and we need to convert to 1/bar/s
                     A = A / R / T * 1e5
 
+                    units = '1/bar/s'
+                    if reaction.reversible:
+
+                        raise NotImplementedError('Reversible sticking not implemented yet')
+
                 else:
                     raise NotImplementedError(f'Cannot handle kinetics type {type(reaction.kinetics)}')
 
 
             lines.append('  variant top\n')
             lines.append('    site_types\ttop\n')
-            lines.append(f'    pre_expon\t{A}\n')  # TODO - figure out RMG's units for a basic sticking coefficient
+            lines.append(f'    pre_expon\t{A}\t# {units}\n')  # TODO - figure out RMG's units for a basic sticking coefficient
             lines.append(f'    activ_eng\t{activation_energy}  # eV\n')
+
+            if reaction.reversible:
+                lines.append(f'    pe_ratio\t1.0\n')  # TODO actually calculate this
+
             lines.append('  end_variant\n\n')
 
             if reaction.reversible:
-                lines.append('end reversible_step\n\n')
+                lines.append('end_reversible_step\n\n')
             else:
                 lines.append('end_step\n\n\n')
         
@@ -321,7 +354,7 @@ class ZacrosWriter(KMCWriter):
             f.writelines(lines)
 
 
-    def write_simulation_file(self, output_dir, species_list, T, P, starting_gas_conc):
+    def write_simulation_file(self, output_dir, species_list, T, P, starting_gas_conc, simulation_file=None):
         # WRITE THE GENERAL SIMULATION INPUT FILE
         simulation_path = os.path.join(output_dir, 'simulation_input.dat')
         lines = []
@@ -344,11 +377,12 @@ class ZacrosWriter(KMCWriter):
             else:
                 gas_species.append(species)
                 num_gas_species += 1
-        
 
         lines.append(f'n_gas_species\t\t{num_gas_species}\n')
         lines.append(f'gas_specs_names\t\t{" ".join([str(sp.label) for sp in gas_species])}\n')
-        lines.append(f'gas_energies\t\t{" ".join([str(0.00) for sp in gas_species])}  # eV\n')
+
+        # get the gas energies using the RMG thermo  # convert from J/mol to eV per molecule
+        lines.append(f'gas_energies\t\t{" ".join([str(np.round(J_to_eV(sp.get_enthalpy(T)), 3)) for sp in gas_species])}  # eV\n')
         lines.append(f'gas_molec_weights\t\t{" ".join([str(np.round(sp.molecular_weight.value, 3)) for sp in gas_species])}\n')
         
         # TODO add something that makes sense
@@ -361,14 +395,22 @@ class ZacrosWriter(KMCWriter):
         lines.append(f'surf_specs_dent\t\t{" ".join(["1" for sp in surf_species])}\n\n')
 
         # TODO get timeframe from Cantera simulation?
-        lines.append(f'snapshots\t\ton time 1e-8\n')
-        lines.append(f'process_statistics\t\ton time 1e-8\n')
-        lines.append(f'species_numbers\t\ton time 1e-8\n\n')
+        # get the simulation settings
+        if simulation_file:
+            with open(simulation_file, 'r') as f:
+                simulation_settings = yaml.safe_load(f)
+                t_end = simulation_settings['t_end']
+        else:
+            t_end = 1e-6
+
+        lines.append(f'snapshots\t\ton time {t_end / 100.0}\n')
+        lines.append(f'process_statistics\t\ton time {t_end / 100.0}\n')
+        lines.append(f'species_numbers\t\ton time {t_end / 100.0}\n\n')
 
         lines.append(f'# event_report\t\ton\n\n')
 
         lines.append(f'max_steps\t\tinfinity  # steps\n')
-        lines.append(f'max_time\t\t5e-6  # seconds\n\n')
+        lines.append(f'max_time\t\t{t_end} # seconds\n\n')
 
         lines.append(f'wall_time\t\t3000  # seconds\n\n')
 
@@ -384,13 +426,13 @@ class ZacrosWriter(KMCWriter):
         with open(simulation_path, 'w') as f:
             f.writelines(lines)
 
-    def write(self, output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=2.72e-5):
+    def write(self, output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=2.72e-5, simulation_file=None):
         # make the mechanism file
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
         # WRITE THE SIMULATION FILE
-        self.write_simulation_file(output_dir, species_list, T, P, starting_gas_conc)
+        self.write_simulation_file(output_dir, species_list, T, P, starting_gas_conc, simulation_file=simulation_file)
 
         # WRITE THE MECHANISM FILE
         self.write_mechanism_file(output_dir, species_list, reaction_list, T, site_density)
@@ -399,4 +441,4 @@ class ZacrosWriter(KMCWriter):
         self.write_lattice_file(output_dir)
 
         # WRITE THE ENERGETICS FILE
-        self.write_energetics_file(output_dir, species_list)
+        self.write_energetics_file(output_dir, species_list, T)

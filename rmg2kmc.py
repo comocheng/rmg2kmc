@@ -80,4 +80,4 @@ else:
 
 
 
-writer.write(output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=site_density)
+writer.write(output_dir, species_list, reaction_list, T, P, starting_gas_conc, site_density=site_density, simulation_file=simulation_file)
