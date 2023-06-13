@@ -5,9 +5,11 @@ import yaml
 import numpy as np
 import shutil
 import datetime
+import copy
 import abc
 import cantera as ct
 import rmgpy.kinetics
+import scipy.optimize
 
 
 PT111_SDEN = 1.0e15  # surface site density of Pt(111) surface in mol/m^2
@@ -167,6 +169,56 @@ def J_to_eV(joules_per_mol):
     e = 1.602176634e-19
     return joules_per_mol / N_A / e
 
+
+def other_kinetics2simple_arrhenius(rxn, T0, SDEN=2.77e-5):
+    """converts any kinetic model into a simple arrhenius form
+    with just a pre-exponential and activation energy
+    The kinetics will match the original model exactly at Temperature T0
+    This is expecting a reaction object, not a kinetics
+    """
+    def my_function(x, m):
+        return m * x
+
+    Ts = np.linspace(300, 3000, 1001)
+    lnks = np.zeros(len(Ts))
+
+    needs_site_density = False
+    if type(rxn.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
+        needs_site_density = True
+    
+    for i in range(0, len(Ts)):
+        if needs_site_density:
+            lnks[i] = np.log(rxn.get_rate_coefficient(Ts[i], 101325, surface_site_density=SDEN))
+        else:
+            lnks[i] = np.log(rxn.get_rate_coefficient(Ts[i], 101325))
+
+    R = 8.314  # J/mol/K
+    xs = 1.0 / Ts
+    x0 = 1.0 / T0
+    
+    if needs_site_density:
+        y0 = np.log(rxn.get_rate_coefficient(T0, 101325, surface_site_density=SDEN))
+    else:
+        y0 = np.log(rxn.get_rate_coefficient(T0, 101325))
+
+    ydata = lnks - y0
+    xdata = xs - x0
+
+    popt, pconv = scipy.optimize.curve_fit(my_function, xdata, ydata)
+
+    # transform the variables back
+    m = popt[0]
+    b = y0 - m * x0
+    A = np.exp(b)
+    Ea = -m * R
+
+    simple_arrhenius_kinetics = rmgpy.kinetics.surface.SurfaceArrhenius()
+    simple_arrhenius_kinetics.Ea = (Ea, 'J/mol')
+    simple_arrhenius_kinetics.A = (A, 'm^3/(mol*s)')
+
+    return simple_arrhenius_kinetics
+
+
 class ZacrosWriter(KMCWriter):
 
     def write_lattice_file(self, output_dir):
@@ -236,7 +288,7 @@ class ZacrosWriter(KMCWriter):
             lines.append('  lattice_state\n')
             lines.append(f'    1 {species.label}   1\n')
             lines.append('  site_types top\n')
-            lines.append(f'  cluster_eng {np.round(J_to_eV(species.get_enthalpy(T)), 3)}  # eV\n\n')
+            lines.append(f'  cluster_eng {np.round(J_to_eV(species.get_enthalpy(T)), 5)}  # eV\n\n')
             lines.append(f'end_cluster {species.label}_top\n')  # TODO other sites?
 
         lines.append('end_energetics\n\n')
@@ -308,26 +360,73 @@ class ZacrosWriter(KMCWriter):
 
             # TODO add more site types
             R = 8.314  # J/mol/K
-            activation_energy = J_to_eV(reaction.kinetics.Ea.value_si)
 
             if translation_method == 'pre_exponential':
-                assert activation_energy == 0, 'Cannot handle activation energy yet'
 
                 # TODO assert monodentate
+                # convert whatever it is to a simple arrhenius form (only pre-exponential factor and activation energy)):
+                simple_fwd_kinetics = other_kinetics2simple_arrhenius(reaction, T, SDEN=site_density)
+                A = simple_fwd_kinetics.A.value_si  # m^3/mol/s
+                n = simple_fwd_kinetics.n.value_si  # dimensionless
+                Ea = simple_fwd_kinetics.Ea.value_si  # J/mol
+
+                assert n == 0, 'n should equal zero in this format'
 
                 # Assuming only a pre-exponential factor, no activation energy
                 if type(reaction.kinetics) == rmgpy.kinetics.surface.StickingCoefficient:
                     # divide by RT
                     # rate = reaction.kinetics.A.value_si / (8.31446261815324 * T)
                     # need to pass through the site density
-                    A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
+                    # A = reaction.get_rate_coefficient(T, surface_site_density=site_density)
                     # now the reaction rate is in units # m^3/mol/s and we need to convert to 1/bar/s
                     A = A / R / T * 1e5
 
-                    units = '1/bar/s'
+                    PE_units = '1/bar/s'
+
+                    Ea = J_to_eV(Ea)
                     if reaction.reversible:
 
-                        raise NotImplementedError('Reversible sticking not implemented yet')
+                        # raise NotImplementedError('Reversible sticking not implemented yet')
+                        ################## Attempt 1 ##################
+                        # simple_fwd_reaction = copy.deepcopy(reaction)
+                        # simple_fwd_reaction.kinetics = simple_fwd_kinetics
+                        # temp_reactants = copy.deepcopy(reaction.reactants)
+                        # simple_fwd_reaction.reactants = simple_fwd_reaction.products
+                        # simple_fwd_reaction.products = temp_reactants
+
+                        # rev_kinetics = simple_fwd_reaction.generate_reverse_rate_coefficient(surface_site_density=site_density)
+                        # rev_reaction = copy.deepcopy(reaction)
+                        # rev_reaction.reactants = reaction.products
+                        # rev_reaction.products = reaction.reactants
+                        # rev_reaction.kinetics = rev_kinetics
+                        # # simplify the reverse kinetics
+                        # simple_rev_kinetics = other_kinetics2simple_arrhenius(rev_reaction, T, SDEN=site_density)
+
+                        # PE_ratio = simple_fwd_kinetics.A.value_si / simple_rev_kinetics.A.value_si
+
+                        # ################# Attempt 2 ##################
+                        # # create the reverse kinetics for the reaction by reversing the original and converting it to simpler kinetics:
+                        # rmg_rev_kinetics = reaction.generate_reverse_rate_coefficient(surface_site_density=site_density)
+                        # # create a reaction object with the reverse kinetics to pass to the translator
+                        # rev_reaction = copy.deepcopy(reaction)
+                        # rev_reaction.reactants = reaction.products
+                        # rev_reaction.products = reaction.reactants
+                        # rev_reaction.kinetics = rmg_rev_kinetics
+                        # simple_rev_kinetics = other_kinetics2simple_arrhenius(rev_reaction, T, SDEN=site_density)
+                        # PE_ratio = simple_fwd_kinetics.A.value_si / simple_rev_kinetics.A.value_si
+
+
+                        ################## Attempt 3 ##################
+                        # Ea_manual = simple_fwd_kinetics.Ea.value_si - reaction.get_enthalpy_of_reaction(T)
+
+                        # kfwd = simple_fwd_kinetics.get_rate_coefficient(T)
+                        # K = reaction.get_equilibrium_constant(T)
+                        # krev = kfwd / K
+                        # A_manual = krev / np.exp(-Ea_manual / R / T)
+                        # PE_ratio = simple_fwd_kinetics.A.value_si / A_manual
+
+                        ################## Attempt 4 ##################
+                        PE_ratio = np.exp(reaction.get_entropy_of_reaction(T) / R)
 
                 else:
                     raise NotImplementedError(f'Cannot handle kinetics type {type(reaction.kinetics)}')
@@ -335,11 +434,11 @@ class ZacrosWriter(KMCWriter):
 
             lines.append('  variant top\n')
             lines.append('    site_types\ttop\n')
-            lines.append(f'    pre_expon\t{A}\t# {units}\n')  # TODO - figure out RMG's units for a basic sticking coefficient
-            lines.append(f'    activ_eng\t{activation_energy}  # eV\n')
+            lines.append(f'    pre_expon\t{A}\t# {PE_units}\n')
+            lines.append(f'    activ_eng\t{Ea}  # eV\n')
 
             if reaction.reversible:
-                lines.append(f'    pe_ratio\t1.0\n')  # TODO actually calculate this
+                lines.append(f'    pe_ratio\t{PE_ratio}\n')
 
             lines.append('  end_variant\n\n')
 
@@ -357,9 +456,20 @@ class ZacrosWriter(KMCWriter):
     def write_simulation_file(self, output_dir, species_list, T, P, starting_gas_conc, simulation_file=None):
         # WRITE THE GENERAL SIMULATION INPUT FILE
         simulation_path = os.path.join(output_dir, 'simulation_input.dat')
+
+        # TODO get timeframe from Cantera simulation?
+        # get the simulation settings
+        if simulation_file:
+            with open(simulation_file, 'r') as f:
+                simulation_settings = yaml.safe_load(f)
+                t_end = simulation_settings['t_end']
+                random_seed = simulation_settings['random_seed']
+        else:
+            t_end = 1e-6
+            random_seed = 8949321
+
         lines = []
         lines.append(f'# Simulation input file autogenerate by rmg2kmc {datetime.datetime.now()}\n')
-        random_seed = 8949321
         lines.append(f'random_seed\t\t{random_seed}\n\n')
         lines.append(f'temperature\t\t{float(T)}  # K\n')
         lines.append(f'pressure\t\t{P}  # bar\n\n')
@@ -382,8 +492,8 @@ class ZacrosWriter(KMCWriter):
         lines.append(f'gas_specs_names\t\t{" ".join([str(sp.label) for sp in gas_species])}\n')
 
         # get the gas energies using the RMG thermo  # convert from J/mol to eV per molecule
-        lines.append(f'gas_energies\t\t{" ".join([str(np.round(J_to_eV(sp.get_enthalpy(T)), 3)) for sp in gas_species])}  # eV\n')
-        lines.append(f'gas_molec_weights\t\t{" ".join([str(np.round(sp.molecular_weight.value, 3)) for sp in gas_species])}\n')
+        lines.append(f'gas_energies\t\t{" ".join([str(np.round(J_to_eV(sp.get_enthalpy(T)), 5)) for sp in gas_species])}  # eV\n')
+        lines.append(f'gas_molec_weights\t\t{" ".join([str(np.round(sp.molecular_weight.value, 5)) for sp in gas_species])}\n')
         
         # TODO add something that makes sense
         lines.append(f'gas_molar_fracs\t\t{starting_gas_conc}\n\n')
@@ -394,14 +504,7 @@ class ZacrosWriter(KMCWriter):
         # TODO add bidentate species
         lines.append(f'surf_specs_dent\t\t{" ".join(["1" for sp in surf_species])}\n\n')
 
-        # TODO get timeframe from Cantera simulation?
-        # get the simulation settings
-        if simulation_file:
-            with open(simulation_file, 'r') as f:
-                simulation_settings = yaml.safe_load(f)
-                t_end = simulation_settings['t_end']
-        else:
-            t_end = 1e-6
+        
 
         lines.append(f'snapshots\t\ton time {t_end / 100.0}\n')
         lines.append(f'process_statistics\t\ton time {t_end / 100.0}\n')

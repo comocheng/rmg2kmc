@@ -35,6 +35,23 @@ elif mechanism_file.endswith('.inp'):
     reader = mech_reader.ChemkinMechanismReader()
     species_list, reaction_list = reader.read(gas_mech_file, surface_mech_file, species_dict_file)
 
+    # need to copy the species thermo into the reactions because for some reason it's not already there
+    for i in range(len(reaction_list)):
+        for j in range(len(reaction_list[i].reactants)):
+            for ref_sp in species_list:
+                if ref_sp.is_isomorphic(reaction_list[i].reactants[j]):
+                    reaction_list[i].reactants[j] = ref_sp
+                    break
+            else:
+                print('no match found')
+        for j in range(len(reaction_list[i].products)):
+            for ref_sp in species_list:
+                if ref_sp.is_isomorphic(reaction_list[i].products[j]):
+                    reaction_list[i].products[j] = ref_sp
+                    break
+            else:
+                print('no match found')
+
     # get the site density from the file
     with open(surface_mech_file, 'r') as f:
         for line in f:
